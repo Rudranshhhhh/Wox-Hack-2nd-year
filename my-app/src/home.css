@@ -13,8 +13,42 @@
 .feature{background:var(--bg-elev);padding:18px 18px;border-radius:var(--radius);box-shadow:var(--card-shadow);border:1px solid rgba(31,42,55,0.06)}
 .feature h4{margin:0 0 6px}
 
+/* CTA / button styles used on the home page */
+.cta-row{display:flex;gap:14px;margin-top:20px;flex-wrap:wrap}
+.btn{display:inline-block;padding:12px 18px;border-radius:8px;text-decoration:none;color:var(--text);border:1px solid transparent;font-weight:700;font-size:16px}
+.btn.primary{background:var(--brand);color:white;box-shadow:0 10px 22px rgba(31,42,55,0.12)}
+.btn.primary:hover{filter:brightness(1.03);transform:translateY(-1px)}
+.btn:hover{box-shadow:0 8px 18px rgba(31,42,55,0.08)}
+.btn.outline{background:transparent;border-color:rgba(31,42,55,0.12)}
+.btn.login-btn{padding:8px 14px}
+
 @media (max-width:720px){
   .hero-inner{flex-direction:column}
   .media-card img{width:180px}
   .site-logo{width:180px}
 }
+
+/* Auth pages */
+.auth-page{display:flex;align-items:center;justify-content:center;padding:64px 16px;background:linear-gradient(180deg,#f9fbff,#f6f8ff)}
+.auth-card{width:100%;max-width:460px;background:#ffffff;border:1px solid rgba(31,42,55,0.06);border-radius:16px;box-shadow:0 18px 40px rgba(31,42,55,0.10);padding:28px}
+.auth-title{margin:0 0 6px;font-size:28px;letter-spacing:-0.3px}
+.auth-subtitle{margin:0 0 18px;color:var(--muted)}
+.auth-form label{display:block;margin:12px 0 8px;font-weight:600}
+.auth-form input{width:100%;padding:12px 14px;border-radius:10px;border:1px solid rgba(31,42,55,0.14);background:#fbfcff}
+.auth-form input:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 4px rgba(83,109,254,0.12)}
+.auth-actions{display:flex;gap:10px;align-items:center;margin-top:6px}
+.auth-hint{margin-top:10px;color:var(--muted);font-size:14px}
+
+@media (max-width:480px){
+  .auth-card{padding:22px;border-radius:14px}
+  .auth-actions{flex-direction:column}
+  .auth-actions .btn{width:100%;text-align:center}
+}
+
+/* Browse hero search */
+.browse-hero{margin:10px 0 12px}
+.search-row{display:flex;gap:10px;align-items:center;flex-wrap:nowrap;width:100%;max-width:100%}
+.search-input-lg{flex:1 1 auto;min-width:0;width:100%;padding:14px 16px;border-radius:12px;border:2px solid #000;background:#fbfcff;font-size:16px}
+.search-input-lg:focus{outline:none;border-color:#000;box-shadow:0 0 0 3px rgba(0,0,0,0.12)}
+.search-apply{padding:14px 18px;border-radius:12px;background:#ff7a00;color:#fff;border:2px solid #ff7a00}
+.search-apply:hover{filter:brightness(1.06)}

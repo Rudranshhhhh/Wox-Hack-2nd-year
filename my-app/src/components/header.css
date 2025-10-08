@@ -39,3 +39,8 @@
   transition: background .2s ease, color .2s ease;
 }
 .nav a:hover{ background: #eef2ff; color: var(--primary-strong); }
+
+/* Header action area (login button) */
+.header-actions{margin-left:12px;display:flex;gap:10px}
+.header-login{display:inline-block;padding:10px 14px;border-radius:10px;text-decoration:none;border:1px solid rgba(31,42,55,0.14);color:var(--text);font-weight:700}
+.header-login:hover{background:#f0f4ff;color:var(--primary-strong);box-shadow:0 8px 18px rgba(31,42,55,0.08)}

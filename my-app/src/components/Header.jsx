@@ -1,22 +1,26 @@
 import React from 'react';
 import './header.css';
+import { Link } from 'react-router-dom';
 
 export default function Header() {
   return (
     <header className="site-header">
       <div className="container header-inner">
-        <div className="brand">
+        <Link to="/" className="brand">
           <img src={process.env.PUBLIC_URL + '/logo.png'} alt="Trace logo" className="brand-logo" />
           <div>
-            <h1>Campus Lost & Found</h1>
+            <h1>Trace</h1>
             <p className="tag">Find it. Claim it. Close the loop.</p>
           </div>
-        </div>
+        </Link>
         <nav className="nav">
-          <a href="#browse">Browse</a>
-          <a href="#report">Report</a>
-          <a href="#contact">Contact</a>
+          <Link to="/browse">Browse</Link>
+          <Link to="/report">Report</Link>
         </nav>
+        <div className="header-actions">
+          <Link className="btn outline header-login" to="/login">Log in</Link>
+          <Link className="btn outline header-login" to="/signup">Sign up</Link>
+        </div>
       </div>
     </header>
   );

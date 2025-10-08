@@ -9,9 +9,9 @@ export default function Home() {
           <div className="hero-copy">
             <h2>Lost something? We can help.</h2>
             <p className="lead">Report or search lost & found items across campus. Upload a photo, add details, and chat securely with finders.</p>
-            <div className="cta-row">
-              <a className="btn primary" href="#report">Report an item</a>
-              <a className="btn" href="#browse">Browse items</a>
+              <div className="cta-row">
+              <a className="btn" href="/report">Report an item</a>
+              <a className="btn" href="/browse">Browse items</a>
             </div>
           </div>
           <div className="hero-media" aria-hidden>
