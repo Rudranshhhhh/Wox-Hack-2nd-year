@@ -10,12 +10,12 @@ export default function Header() {
           <img src={process.env.PUBLIC_URL + '/logo.png'} alt="Trace logo" className="brand-logo" />
           <div>
             <h1>Trace</h1>
-            <p className="tag">Find it. Claim it. Close the loop.</p>
           </div>
         </Link>
         <nav className="nav">
           <Link to="/browse">Browse</Link>
           <Link to="/report">Report</Link>
+          <a href="#contact">Contact</a>
         </nav>
         <div className="header-actions">
           <Link className="btn outline header-login" to="/login">Log in</Link>

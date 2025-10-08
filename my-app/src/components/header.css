@@ -32,7 +32,7 @@
 .tag{font-size:12px;opacity:0.7;margin-top:2px}
 .nav a{
   color: var(--text);
-  margin-left:14px;
+  margin-left:8px;
   text-decoration:none;
   padding:8px 12px;
   border-radius:10px;
@@ -41,6 +41,7 @@
 .nav a:hover{ background: #eef2ff; color: var(--primary-strong); }
 
 /* Header action area (login button) */
-.header-actions{margin-left:12px;display:flex;gap:10px}
+.header-actions{margin-left:auto;display:flex;gap:10px}
+.site-header .container{padding-right:0}
 .header-login{display:inline-block;padding:10px 14px;border-radius:10px;text-decoration:none;border:1px solid rgba(31,42,55,0.14);color:var(--text);font-weight:700}
 .header-login:hover{background:#f0f4ff;color:var(--primary-strong);box-shadow:0 8px 18px rgba(31,42,55,0.08)}

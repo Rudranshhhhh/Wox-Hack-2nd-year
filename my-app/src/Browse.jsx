@@ -11,7 +11,7 @@ export default function Browse(){
   }
 
   return (
-    <main className="container" style={{padding:0,width:'100%'}}>
+    <main className="container" style={{padding:0,width:'95%'}}>
       <h2 style={{margin:'0 0 12px'}}>Browse items</h2>
       <form onSubmit={handleApply} className="browse-hero">
         <div className="search-row">

@@ -15,8 +15,10 @@ export default function Home() {
             </div>
           </div>
           <div className="hero-media" aria-hidden>
-            <div className="card media-card">
-              <img src={process.env.PUBLIC_URL + '/logo.png'} alt="Trace logo" className="site-logo" />
+            <div className="card media-card" style={{display:'flex',alignItems:'center',justifyContent:'center',padding:'28px'}}>
+              <blockquote style={{fontSize:20, lineHeight:1.5, margin:0, color:'var(--muted)'}}>
+                “What is lost can be found when we all look out for each other.”
+              </blockquote>
             </div>
           </div>
         </div>
