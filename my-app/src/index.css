@@ -1,13 +1,42 @@
+:root{
+  --bg: #fbfaf8;
+  --bg-elev: #ffffff;
+  --text: #1f2a37;
+  --muted: #5b6b7a;
+  --primary: #6b8afd; /* cozy cornflower */
+  --primary-strong: #4b6bff;
+  --accent: #f5c08a; /* warm accent */
+  --card-shadow: 0 10px 30px rgba(31,42,55,0.08);
+  --ring: 0 0 0 3px rgba(107,138,253,0.25);
+  --radius: 14px;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root { height: 100%; }
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: 'Inter', 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    Roboto, Oxygen, Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  color: var(--text);
+  background: radial-gradient(1200px 600px at 10% -10%, #f7f4ef 0%, transparent 50%),
+              radial-gradient(1000px 500px at 120% 10%, #f0f6ff 0%, transparent 50%),
+              var(--bg);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+h1, h2, h3, h4 { font-family: 'Nunito', 'Inter', system-ui, sans-serif; }
+h1 { font-weight: 700; letter-spacing: -0.3px; }
+h2, h3 { font-weight: 600; letter-spacing: -0.2px; }
+p { line-height: 1.7; color: var(--muted); }
+
+a { color: var(--primary); }
+a:hover { color: var(--primary-strong); }
+
+img { max-width: 100%; display: block; }
+
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }

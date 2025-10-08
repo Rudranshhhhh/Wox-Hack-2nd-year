@@ -1,0 +1,8 @@
+.site-footer{
+  border-top:1px solid rgba(31,42,55,0.06);
+  margin-top:48px;
+  background: linear-gradient(180deg, #f9fbff, #ffffff);
+}
+.footer-inner{display:flex;justify-content:space-between;align-items:center;padding:18px 0;color:var(--muted)}
+.foot-links a{margin-left:12px;color:var(--primary);text-decoration:none;padding:6px 8px;border-radius:8px}
+.foot-links a:hover{background:#eef2ff;color:var(--primary-strong)}

@@ -1,2 +1,2 @@
 // Compatibility stub: re-export the JSX implementation
-export { default } from './App.jsx';
+export { default } from './Home.jsx';
