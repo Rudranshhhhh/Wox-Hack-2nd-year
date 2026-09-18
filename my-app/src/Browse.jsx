@@ -34,7 +34,7 @@ export default function Browse(){
           <input
             type="text"
             className="search-input-lg"
-            placeholder="Search items (e.g., backpack, calculator, wallet)"
+            placeholder="Search by object, color, or feature (e.g., blue cap)"
             value={query}
             onChange={e => setQuery(e.target.value)}
           />
@@ -52,6 +52,9 @@ export default function Browse(){
         <h3>{item.name}</h3>
         <p>{item.description}</p>
         <p><strong>{item.category || 'Other'}</strong> · {item.location || 'Location not shared'}</p>
+        {item.detected_features?.length > 0 && <div className="feature-tags" aria-label="Detected features">
+          {item.detected_features.map(feature => <span className="feature-tag" key={feature}>{feature}</span>)}
+        </div>}
         {item.image_url && <img src={`http://localhost:5000${item.image_url}`} alt={item.name} />}
         <details><summary>Claim this item</summary><ClaimForm itemId={item.id} /></details>
       </article>)}</div>}

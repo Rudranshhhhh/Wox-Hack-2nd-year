@@ -2,6 +2,7 @@ import os
 import datetime
 import base64
 import json
+import tempfile
 from flask import Flask, request, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
 from flask_cors import CORS
@@ -10,8 +11,11 @@ from google.cloud import vision
 import jwt
 from flask_cors import CORS
 from sqlalchemy import inspect, text
+from dotenv import load_dotenv
+from groq import Groq
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(os.path.join(BASE_DIR, '.env'), override=True)
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
@@ -21,10 +25,17 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'your-secret-key')  # Change in production
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # Limit payload to 16MB
+groq_client = Groq(api_key=os.getenv('GROQ_API_KEY')) if os.getenv('GROQ_API_KEY') else None
+GROQ_MODEL = os.getenv('GROQ_VISION_MODEL', 'qwen/qwen3.8-27b')
 
 # Enable CORS for all routes
-CORS(app, 
-    origins=["http://localhost:3000"], 
+CORS(app,
+    origins=[
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
+    ],
     allow_credentials=True,
     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization", "Accept", "X-Requested-With"],
@@ -84,7 +95,10 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def detect_features(file_path):
-    """Return concise visual labels and dominant color names when Vision is configured."""
+    """Return searchable visual features from Groq, then Google Vision if configured."""
+    groq_features = detect_features_with_groq(file_path)
+    if groq_features:
+        return groq_features
     if not vision_client or not file_path:
         return []
     try:
@@ -111,6 +125,51 @@ def detect_features(file_path):
         return list(dict.fromkeys(colors + labels))[:15]
     except Exception as error:
         app.logger.warning('Image feature detection skipped: %s', error)
+        return []
+
+def detect_features_with_groq(file_path):
+    if not groq_client or not file_path:
+        return []
+    try:
+        with open(file_path, 'rb') as image_file:
+            encoded_image = base64.b64encode(image_file.read()).decode('ascii')
+        response = groq_client.chat.completions.create(
+            model=GROQ_MODEL,
+            temperature=0,
+            max_tokens=300,
+            response_format={'type': 'json_object'},
+            messages=[{
+                'role': 'user',
+                'content': [
+                    {
+                        'type': 'text',
+                        'text': ('Analyze this lost-and-found item photo. Return JSON only with arrays '
+                                 'objects and colors, plus strings category and description. Use short '
+                                 'lowercase search terms and do not invent details.'),
+                    },
+                    {
+                        'type': 'image_url',
+                        'image_url': {'url': f'data:image/jpeg;base64,{encoded_image}'},
+                    },
+                ],
+            }],
+        )
+        content = response.choices[0].message.content or '{}'
+        result = json.loads(content)
+        features = []
+        for key in ('colors', 'objects', 'category'):
+            value = result.get(key, [])
+            if isinstance(value, str):
+                value = [value]
+            features.extend(
+                normalized
+                for item in value
+                for normalized in [str(item).strip().lower()]
+                if normalized and normalized not in {'unknown', 'none', 'n/a'}
+            )
+        return list(dict.fromkeys(features))[:15]
+    except Exception as error:
+        app.logger.warning('Groq image feature detection skipped: %s', error)
         return []
 
 def color_name(red, green, blue):
@@ -398,32 +457,19 @@ def scan_image():
         if not image_file.filename:
             return jsonify({"error": "No file selected"}), 400
 
-        # Read the image
         content = image_file.read()
+        extension = os.path.splitext(image_file.filename)[1] or '.jpg'
+        temporary_path = None
+        try:
+            with tempfile.NamedTemporaryFile(suffix=extension, delete=False) as temporary_file:
+                temporary_path = temporary_file.name
+                temporary_file.write(content)
+            features = detect_features(temporary_path)
+        finally:
+            if temporary_path and os.path.exists(temporary_path):
+                os.unlink(temporary_path)
 
-        # Create an image instance
-        image = vision.Image(content=content)
-
-        # Perform label detection
-        response = vision_client.label_detection(image=image)
-        labels = response.label_annotations
-
-        # Get object detection as well for more detailed analysis
-        object_response = vision_client.object_localization(image=image)
-        objects = object_response.localized_object_annotations
-
-        # Combine results
-        label_results = [{"label": label.description, "confidence": round(label.score * 100, 2)} 
-                        for label in labels]
-        
-        object_results = [{"object": obj.name, "confidence": round(obj.score * 100, 2)} 
-                         for obj in objects]
-
-        return jsonify({
-            "success": True,
-            "labels": label_results,
-            "objects": object_results
-        })
+        return jsonify({'features': features})
 
     except Exception as e:
         print(f"Error in scan_image: {str(e)}")

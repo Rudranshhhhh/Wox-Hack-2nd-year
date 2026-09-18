@@ -12,6 +12,36 @@
 .feature-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;margin-top:20px}
 .feature{background:var(--bg-elev);padding:18px 18px;border-radius:var(--radius);box-shadow:var(--card-shadow);border:1px solid rgba(31,42,55,0.06)}
 .feature h4{margin:0 0 6px}
+.feature-tags{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+.feature-tag{padding:5px 9px;border-radius:999px;background:#e8f3ef;color:#185c4a;font-size:12px;font-weight:700;text-transform:capitalize}
+.item-card img{width:100%;max-height:220px;object-fit:cover;border-radius:10px;margin-top:8px}
+.report-preview{display:block;width:100%;max-height:220px;object-fit:cover;border-radius:10px;margin:8px 0 12px}
+
+/* Report workflow */
+.report-page{min-height:calc(100vh - 150px);padding:54px 20px 72px;background:radial-gradient(circle at 12% 10%,#fff3df 0,transparent 28%),radial-gradient(circle at 92% 20%,#e5f4ef 0,transparent 30%),#f7f8f5}
+.report-layout{max-width:1040px;margin:0 auto;display:grid;grid-template-columns:minmax(220px,0.72fr) minmax(0,1.28fr);gap:34px;align-items:start}
+.workflow-panel{padding:24px 8px 0 0;position:sticky;top:24px}
+.eyebrow{display:block;color:#a25528;font-size:11px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase}
+.workflow-panel .auth-title{font-size:38px;line-height:1.08;margin:12px 0 16px;color:#173d39}
+.workflow-panel .auth-subtitle{max-width:330px;line-height:1.65}
+.workflow-steps{margin-top:38px;border-left:1px solid #cddbd5;padding:2px 0 2px 20px}
+.workflow-step{display:flex;align-items:center;gap:12px;color:#81918d;font-weight:700;font-size:14px;min-height:48px;position:relative;transition:color .25s ease}
+.workflow-step.is-done,.workflow-step.is-active{color:#185c4a}
+.step-number{display:grid;place-items:center;width:26px;height:26px;margin-left:-34px;border:1px solid #cddbd5;border-radius:50%;background:#f7f8f5;color:#81918d;font-size:12px;transition:all .25s ease}
+.workflow-step.is-done .step-number{background:#185c4a;border-color:#185c4a;color:white}.workflow-step.is-active .step-number{border-color:#a25528;color:#a25528;box-shadow:0 0 0 5px rgba(162,85,40,.1)}
+.workflow-note{display:flex;gap:9px;align-items:flex-start;max-width:285px;margin-top:38px;padding-top:18px;border-top:1px solid #dbe4df;color:#6c7b77;font-size:13px;line-height:1.55}.workflow-note span{color:#a25528}
+.report-card{background:#fff;border:1px solid #e2e8e4;border-radius:18px;box-shadow:0 24px 60px rgba(30,61,53,.1);padding:32px 34px;animation:report-in .55s ease both}
+.report-card-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:24px}.report-card h1{font-size:30px;line-height:1.1;margin:8px 0 0;color:#173d39}
+.status-pill{padding:7px 10px;border-radius:999px;background:#f0f3f0;color:#70807a;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.7px}.status-pill.analyzing{background:#fff0e5;color:#a25528}.status-pill.complete{background:#e8f3ef;color:#185c4a}
+.field-label{display:flex!important;justify-content:space-between;align-items:center;margin:18px 0 8px!important;color:#29423e;font-size:13px;font-weight:800}.field-hint{color:#96a39f;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.upload-label-row{margin-top:0!important}
+.dropzone{min-height:188px;border:1.5px dashed #b9cdc5;border-radius:14px;background:#f8fbf9;display:grid;place-items:center;cursor:pointer;overflow:hidden;transition:border-color .2s,background .2s,transform .2s}.dropzone:hover,.dropzone.is-dragging{border-color:#a25528;background:#fff8f1;transform:translateY(-1px)}
+.dropzone-copy{display:flex;align-items:center;flex-direction:column;gap:7px;color:#7d8d88;font-size:12px}.dropzone-copy strong{color:#185c4a;font-size:16px}.upload-icon{display:grid;place-items:center;width:38px;height:38px;border-radius:12px;background:#e8f3ef;color:#185c4a;font-size:23px;font-weight:400}.preview-wrap{width:100%;height:100%;min-height:188px;position:relative}.preview-wrap .report-preview{width:100%;height:100%;min-height:188px;max-height:260px;object-fit:cover;margin:0;border-radius:0}.preview-overlay{position:absolute;inset:auto 12px 12px;padding:8px;text-align:center;border-radius:8px;background:rgba(23,61,57,.85);color:#fff;font-size:12px;font-weight:700;opacity:0;transition:opacity .2s}.preview-wrap:hover .preview-overlay{opacity:1}
+.analysis-panel{position:relative;overflow:hidden;min-height:74px;margin-top:14px;padding:14px 16px;border-radius:12px;background:#f4f7f5;border:1px solid #e5ece8;transition:background .3s,border-color .3s}.analysis-panel.analyzing{background:#fff8f1;border-color:#f0d3ba}.analysis-panel.complete{background:#f0f8f4;border-color:#cfe5db}.analysis-heading{display:flex;gap:10px;align-items:flex-start}.analysis-heading strong,.analysis-heading span{display:block}.analysis-heading strong{color:#29423e;font-size:13px}.analysis-heading span:not(.analysis-spark){margin-top:3px;color:#7d8d88;font-size:12px}.analysis-spark{color:#a25528;font-size:17px}.detected-features{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}.detected-feature{padding:6px 10px;border-radius:999px;background:#fff;border:1px solid #cfe5db;color:#185c4a;font-size:12px;font-weight:800;text-transform:capitalize;animation:feature-in .35s ease both}.analysis-empty{display:block;margin-top:10px;color:#7d8d88;font-size:12px}.scan-line{position:absolute;left:0;right:0;top:0;height:2px;background:#a25528;box-shadow:0 0 12px #a25528;animation:scan 1.4s ease-in-out infinite}
+.report-actions{justify-content:flex-end;margin-top:26px}.report-submit{margin:0!important;background:#185c4a!important;color:#fff!important;border:0!important;cursor:pointer}.report-submit span{margin-left:10px;font-size:18px}.report-submit:hover{background:#124c3e!important}
+@keyframes report-in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}@keyframes feature-in{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:scale(1)}}@keyframes scan{0%{transform:translateY(0);opacity:.4}50%{opacity:1}100%{transform:translateY(72px);opacity:.4}}
+
+@media (max-width:760px){.report-page{padding:28px 14px 50px}.report-layout{display:block}.workflow-panel{position:static;padding:0 4px 24px}.workflow-panel .auth-title{font-size:32px}.workflow-steps{display:flex;border:0;margin-top:24px;padding:0;gap:10px}.workflow-step{min-height:0;gap:7px;font-size:11px;flex:1;align-items:flex-start;flex-direction:column}.step-number{margin:0}.workflow-note{display:none}.report-card{padding:24px 18px;border-radius:14px}}
 
 /* CTA / button styles used on the home page */
 .cta-row{display:flex;gap:14px;margin-top:20px;flex-wrap:wrap}

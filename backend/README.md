@@ -21,6 +21,8 @@ pip install -r requirements.txt
 python app.py
 ```
 
+Create `backend/.env` with `GROQ_API_KEY` and optionally `GROQ_VISION_MODEL`. The image upload flow uses Groq first and falls back to Google Vision when Groq is unavailable.
+
 API contract (short):
 - POST /api/items
   - form-data: type (lost/found), name, category, description, location, contact (optional), owner_email (optional), image (file)
