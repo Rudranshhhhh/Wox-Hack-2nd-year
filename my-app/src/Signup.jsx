@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
 import './home.css';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from './auth.js';
 
 export default function Signup(){
-  const { login } = useAuth?.() || { login: () => {} };
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

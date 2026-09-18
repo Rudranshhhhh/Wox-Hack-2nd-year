@@ -3,8 +3,11 @@
 Simple Flask backend for the FoundIt! Campus Lost & Found portal.
 
 Features implemented:
-- POST /api/items — upload a found item (image + metadata)
+- POST /api/items — upload a lost or found item (image + metadata)
 - GET  /api/items — list and filter items
+- GET  /api/items/<id>/matches — ranked suggestions from the opposite report type
+- POST /api/items/<id>/claims — submit an ownership proof for verification
+- GET/POST /api/items/<id>/messages — coordinate a handover in an item thread
 - POST /api/items/<id>/recover — mark an item as recovered (closes chat)
 - Socket.IO chat namespace to exchange messages per item (room = item id)
 
@@ -20,10 +23,10 @@ python app.py
 
 API contract (short):
 - POST /api/items
-  - form-data: name, category, description, location, contact (optional), image (file)
+  - form-data: type (lost/found), name, category, description, location, contact (optional), owner_email (optional), image (file)
   - returns created item JSON
 - GET /api/items
-  - query params: q (keyword), category, location, recovered (true/false)
+  - query params: q (keyword), category, location, type (lost/found), recovered (true/false)
 - POST /api/items/<id>/recover
   - marks item recovered and emits a Socket.IO event to close chat
 

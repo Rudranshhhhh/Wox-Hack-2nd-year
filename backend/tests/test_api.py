@@ -19,3 +19,17 @@ def test_list_empty(client):
     rv = client.get('/api/items')
     assert rv.status_code == 200
     assert rv.get_json() == []
+
+def test_item_features_are_searchable(client):
+    rv = client.post('/api/items', data={
+        'type': 'found',
+        'name': 'Unidentified item',
+        'description': 'Found near the library',
+        'location': 'Library',
+    })
+    assert rv.status_code == 201
+    assert rv.get_json()['detected_features'] == []
+
+    rv = client.get('/api/items?q=library')
+    assert rv.status_code == 200
+    assert len(rv.get_json()) == 1

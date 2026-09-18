@@ -1,16 +1,15 @@
 import os
 import datetime
 import base64
+import json
 from flask import Flask, request, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
 from flask_cors import CORS
-from models import db, Item, Message, User
+from models import db, Item, Message, User, Claim
 from google.cloud import vision
 import jwt
-from flask_cors import CORS, cross_origin
-from models import db, Item, Message, User
-import datetime
-import os
+from flask_cors import CORS
+from sqlalchemy import inspect, text
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
@@ -33,8 +32,13 @@ CORS(app,
     supports_credentials=True)
 
 # Setup Google Cloud Vision
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.path.join(BASE_DIR, "service-key.json")
-vision_client = vision.ImageAnnotatorClient()
+vision_client = None
+if os.path.exists(os.path.join(BASE_DIR, "service-key.json")):
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.path.join(BASE_DIR, "service-key.json")
+    try:
+        vision_client = vision.ImageAnnotatorClient()
+    except Exception:
+        vision_client = None
 
 # Add logging
 @app.after_request
@@ -79,6 +83,51 @@ db.init_app(app)
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+def detect_features(file_path):
+    """Return concise visual labels and dominant color names when Vision is configured."""
+    if not vision_client or not file_path:
+        return []
+    try:
+        with open(file_path, 'rb') as image_file:
+            image = vision.Image(content=image_file.read())
+        response = vision_client.annotate_image({
+            'image': image,
+            'features': [
+                {'type_': vision.Feature.Type.LABEL_DETECTION, 'max_results': 12},
+                {'type_': vision.Feature.Type.IMAGE_PROPERTIES},
+            ],
+        })
+        if response.error:
+            return []
+        labels = [label.description.lower() for label in response.label_annotations if label.score >= 0.55]
+        colors = []
+        if response.image_properties_annotation and response.image_properties_annotation.dominant_colors:
+            colors = [
+                color_name(red, green, blue)
+                for color in response.image_properties_annotation.dominant_colors.colors[:5]
+                for red, green, blue in [(color.color.red, color.color.green, color.color.blue)]
+                if color.pixel_fraction >= 0.12
+            ]
+        return list(dict.fromkeys(colors + labels))[:15]
+    except Exception as error:
+        app.logger.warning('Image feature detection skipped: %s', error)
+        return []
+
+def color_name(red, green, blue):
+    if max(red, green, blue) < 55:
+        return 'black'
+    if min(red, green, blue) > 205:
+        return 'white'
+    if red > green * 1.35 and red > blue * 1.35:
+        return 'red'
+    if blue > red * 1.3 and blue > green * 1.15:
+        return 'blue'
+    if green > red * 1.2 and green > blue * 1.1:
+        return 'green'
+    if red > 150 and green > 100 and blue < 100:
+        return 'yellow'
+    return 'multicolor'
+
 # Helper function to verify JWT token
 def verify_token():
     auth_header = request.headers.get('Authorization')
@@ -92,7 +141,7 @@ def verify_token():
         return None
 
 @app.route('/scan_image', methods=['POST'])
-def scan_image():
+def scan_image_base64():
     # Verify user authentication
     auth_payload = verify_token()
     if not auth_payload:
@@ -143,6 +192,14 @@ def scan_image():
 # Create tables before first request
 with app.app_context():
     db.create_all()
+    item_columns = {column['name'] for column in inspect(db.engine).get_columns('item')}
+    if 'item_type' not in item_columns:
+        db.session.execute(text("ALTER TABLE item ADD COLUMN item_type VARCHAR(20) NOT NULL DEFAULT 'found'"))
+    if 'owner_email' not in item_columns:
+        db.session.execute(text("ALTER TABLE item ADD COLUMN owner_email VARCHAR(160)"))
+    if 'detected_features' not in item_columns:
+        db.session.execute(text("ALTER TABLE item ADD COLUMN detected_features TEXT"))
+    db.session.commit()
     # ensure upload folder exists
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
@@ -186,22 +243,6 @@ def signup():
     except Exception as e:
         print(f"Error in signup: {str(e)}")
         return jsonify({'error': f'Server error: {str(e)}'}), 500
-    password = data['password']
-    
-    # Basic email validation
-    if '@' not in email or '.' not in email:
-        return jsonify({'error': 'Invalid email format'}), 400
-    
-    # Basic password validation
-    if len(password) < 6:
-        return jsonify({'error': 'Password must be at least 6 characters'}), 400
-    
-    user = User.create_user(email, password)
-    if not user:
-        return jsonify({'error': 'Email already exists'}), 409
-    
-    return jsonify({'message': 'User created successfully'}), 201
-
 @app.route('/api/login', methods=['POST'])
 def login():
     data = request.get_json()
@@ -215,14 +256,14 @@ def login():
     
     # Generate JWT token
     token = jwt.encode({
-        'user_id': str(user['_id']),
-        'email': user['email'],
+        'user_id': str(user.id),
+        'email': user.email,
         'exp': datetime.datetime.utcnow() + datetime.timedelta(days=1)
     }, app.config['JWT_SECRET_KEY'])
     
     return jsonify({
         'token': token,
-        'email': user['email']
+        'email': user.email
     })
 
 # Serve uploaded images
@@ -234,12 +275,13 @@ def uploaded_file(filename):
 @app.route('/api/items', methods=['POST'])
 def create_item():
     name = request.form.get('name')
+    item_type = request.form.get('type', 'found').lower()
     category = request.form.get('category')
     description = request.form.get('description')
     location = request.form.get('location')
     contact = request.form.get('contact')
 
-    if not name:
+    if not name or item_type not in ('lost', 'found'):
         return jsonify({'error': 'name is required'}), 400
 
     image_filename = None
@@ -257,7 +299,12 @@ def create_item():
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], candidate))
             image_filename = candidate
 
-    item = Item(name=name, category=category, description=description, location=location, image_filename=image_filename, contact=contact)
+    image_features = detect_features(os.path.join(app.config['UPLOAD_FOLDER'], image_filename)) if image_filename else []
+
+    item = Item(name=name, item_type=item_type, category=category, description=description,
+                location=location, image_filename=image_filename, contact=contact,
+                owner_email=request.form.get('owner_email'),
+                detected_features=','.join(image_features))
     db.session.add(item)
     db.session.commit()
     return jsonify(item.to_dict()), 201
@@ -268,15 +315,18 @@ def list_items():
     q = request.args.get('q')
     category = request.args.get('category')
     location = request.args.get('location')
+    item_type = request.args.get('type')
     recovered = request.args.get('recovered')
 
     query = Item.query
     if q:
-        query = query.filter((Item.name.ilike(f"%{q}%")) | (Item.description.ilike(f"%{q}%")))
+        query = query.filter((Item.name.ilike(f"%{q}%")) | (Item.description.ilike(f"%{q}%")) | (Item.detected_features.ilike(f"%{q}%")))
     if category:
         query = query.filter_by(category=category)
     if location:
-        query = query.filter_by(location=location)
+        query = query.filter(Item.location.ilike(f"%{location}%"))
+    if item_type in ('lost', 'found'):
+        query = query.filter_by(item_type=item_type)
     if recovered is not None:
         if recovered.lower() in ('true', '1'):
             query = query.filter_by(recovered=True)
@@ -285,6 +335,46 @@ def list_items():
 
     items = query.order_by(Item.created_at.desc()).all()
     return jsonify([i.to_dict() for i in items])
+
+@app.route('/api/items/<int:item_id>/matches', methods=['GET'])
+def item_matches(item_id):
+    item = Item.query.get_or_404(item_id)
+    opposite_type = 'lost' if item.item_type == 'found' else 'found'
+    candidates = Item.query.filter(Item.item_type == opposite_type, Item.recovered.is_(False)).order_by(Item.created_at.desc()).all()
+    def score(candidate):
+        points = 0
+        if item.category and candidate.category and item.category.lower() == candidate.category.lower():
+            points += 2
+        if item.location and candidate.location and item.location.lower() in candidate.location.lower():
+            points += 1
+        if item.name and candidate.name and any(word in candidate.name.lower() for word in item.name.lower().split()):
+            points += 1
+        return points
+    return jsonify([candidate.to_dict() for candidate in sorted(candidates, key=score, reverse=True) if score(candidate) > 0][:10])
+
+@app.route('/api/items/<int:item_id>/claims', methods=['POST'])
+def create_claim(item_id):
+    Item.query.get_or_404(item_id)
+    data = request.get_json(silent=True) or {}
+    if not data.get('claimant_email') or not data.get('proof'):
+        return jsonify({'error': 'claimant_email and proof are required'}), 400
+    claim = Claim(item_id=item_id, claimant_email=data['claimant_email'], proof=data['proof'])
+    db.session.add(claim)
+    db.session.commit()
+    return jsonify(claim.to_dict()), 201
+
+@app.route('/api/items/<int:item_id>/messages', methods=['GET', 'POST'])
+def item_messages(item_id):
+    Item.query.get_or_404(item_id)
+    if request.method == 'GET':
+        return jsonify([message.to_dict() for message in Message.query.filter_by(item_id=item_id).order_by(Message.timestamp.asc()).all()])
+    data = request.get_json(silent=True) or {}
+    if not data.get('sender') or not data.get('content'):
+        return jsonify({'error': 'sender and content are required'}), 400
+    message = Message(item_id=item_id, sender=data['sender'], content=data['content'])
+    db.session.add(message)
+    db.session.commit()
+    return jsonify(message.to_dict()), 201
 
 # Mark item as recovered
 @app.route('/api/items/<int:item_id>/recover', methods=['POST'])

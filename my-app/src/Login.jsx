@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import './home.css';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from './auth.js';
 
 export default function Login(){
