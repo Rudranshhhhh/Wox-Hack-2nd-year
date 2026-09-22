@@ -1,5 +1,6 @@
 import React from 'react';
 import './home.css';
+import { Link } from 'react-router-dom';
 
 export default function Home() {
   return (
@@ -10,8 +11,8 @@ export default function Home() {
             <h2>Lost something? We can help.</h2>
             <p className="lead">Report or search lost & found items across campus. Upload a photo, add details, and chat securely with finders.</p>
               <div className="cta-row">
-              <a className="btn" href="/report">Report an item</a>
-              <a className="btn" href="/browse">Browse items</a>
+              <Link className="btn primary" to="/report">Report an item</Link>
+              <Link className="btn outline" to="/browse">Browse items</Link>
             </div>
           </div>
           <div className="hero-media" aria-hidden>
