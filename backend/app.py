@@ -127,25 +127,65 @@ def detect_features(file_path):
         app.logger.warning('Image feature detection skipped: %s', error)
         return []
 
+GROQ_ANALYSIS_PROMPT = """You are the image validator for TraceIT, a college lost-and-found portal.
+
+FIRST, decide if this image shows a REAL PHYSICAL OBJECT that a student could plausibly lose or find on a college campus.
+
+VALID examples: bag, backpack, water bottle, laptop, phone, keys, wallet, ID card, jacket, headphones, charger, umbrella, book, stationery, glasses, watch, earbuds, power bank, calculator, lab coat, sports gear.
+
+INVALID — reject immediately with a clear reason:
+- Memes, jokes, cartoons, or any digitally-generated image
+- Screenshots of apps, websites, or computer screens
+- Animals, people, or faces
+- Food or drink (not lostable items)
+- Artwork, posters, or decorative images
+- Blurry/dark images where no object is identifiable
+- Anything that is clearly not a physical item someone could lose
+
+Return ONLY a JSON object with these exact keys:
+{
+  "valid": true or false,
+  "reason": "short explanation if invalid, else empty string",
+  "name": "concise item name, e.g. Blue Jansport Backpack (empty if invalid)",
+  "description": "1-2 sentence description noting color, brand if visible, distinguishing marks (empty if invalid)",
+  "category": "one of: Bags, Electronics, Clothing, Accessories, Stationery, ID/Cards, Keys, Books, Sports, Other (empty if invalid)",
+  "features": ["array", "of", "short", "lowercase", "search", "tags", "like", "colors", "material", "brand"]
+}
+
+Be strict. When in doubt, mark as invalid."""
+
+
 def detect_features_with_groq(file_path):
-    if not groq_client or not file_path:
+    """Legacy wrapper used by the existing /api/scan_image route and detect_features()."""
+    result = analyze_image_with_groq(file_path)
+    if result is None:
         return []
+    if not result.get('valid'):
+        return []
+    return result.get('features', [])
+
+
+def analyze_image_with_groq(file_path):
+    """
+    Returns a dict: {valid, reason, name, description, category, features}
+    Returns None if Groq is unavailable or the call fails hard.
+    """
+    if not groq_client or not file_path:
+        return None
     try:
         with open(file_path, 'rb') as image_file:
             encoded_image = base64.b64encode(image_file.read()).decode('ascii')
         response = groq_client.chat.completions.create(
             model=GROQ_MODEL,
             temperature=0,
-            max_tokens=300,
+            max_tokens=400,
             response_format={'type': 'json_object'},
             messages=[{
                 'role': 'user',
                 'content': [
                     {
                         'type': 'text',
-                        'text': ('Analyze this lost-and-found item photo. Return JSON only with arrays '
-                                 'objects and colors, plus strings category and description. Use short '
-                                 'lowercase search terms and do not invent details.'),
+                        'text': GROQ_ANALYSIS_PROMPT,
                     },
                     {
                         'type': 'image_url',
@@ -156,21 +196,28 @@ def detect_features_with_groq(file_path):
         )
         content = response.choices[0].message.content or '{}'
         result = json.loads(content)
-        features = []
-        for key in ('colors', 'objects', 'category'):
-            value = result.get(key, [])
-            if isinstance(value, str):
-                value = [value]
-            features.extend(
-                normalized
-                for item in value
-                for normalized in [str(item).strip().lower()]
-                if normalized and normalized not in {'unknown', 'none', 'n/a'}
-            )
-        return list(dict.fromkeys(features))[:15]
+
+        # Normalise features list
+        raw_features = result.get('features', [])
+        if isinstance(raw_features, str):
+            raw_features = [raw_features]
+        clean_features = list(dict.fromkeys(
+            str(f).strip().lower()
+            for f in raw_features
+            if str(f).strip().lower() not in {'', 'unknown', 'none', 'n/a'}
+        ))[:15]
+
+        return {
+            'valid':       bool(result.get('valid', False)),
+            'reason':      str(result.get('reason', '')),
+            'name':        str(result.get('name', '')).strip(),
+            'description': str(result.get('description', '')).strip(),
+            'category':    str(result.get('category', '')).strip(),
+            'features':    clean_features,
+        }
     except Exception as error:
-        app.logger.warning('Groq image feature detection skipped: %s', error)
-        return []
+        app.logger.warning('Groq image analysis failed: %s', error)
+        return None
 
 def color_name(red, green, blue):
     if max(red, green, blue) < 55:
@@ -445,6 +492,58 @@ def recover_item(item_id):
     db.session.commit()
     # notify room that the item was recovered
     return jsonify({'message': 'marked as recovered'})
+
+@app.route("/api/analyze_image", methods=["POST"])
+def analyze_image():
+    """
+    Accepts a multipart image upload.
+    Returns {valid, reason, name, description, category, features}
+    so the frontend can auto-fill the report form and reject invalid images.
+    """
+    if "image" not in request.files:
+        return jsonify({"error": "No image uploaded"}), 400
+
+    image_file = request.files["image"]
+    if not image_file.filename:
+        return jsonify({"error": "No file selected"}), 400
+
+    if not allowed_file(image_file.filename):
+        return jsonify({"error": "Unsupported file type. Use JPG, PNG, or GIF."}), 400
+
+    content = image_file.read()
+    extension = os.path.splitext(secure_filename(image_file.filename))[1] or '.jpg'
+    temporary_path = None
+
+    try:
+        with tempfile.NamedTemporaryFile(suffix=extension, delete=False) as tmp:
+            temporary_path = tmp.name
+            tmp.write(content)
+
+        # Try Groq first (full structured result)
+        result = analyze_image_with_groq(temporary_path)
+
+        if result is not None:
+            return jsonify(result)
+
+        # Groq unavailable — fall back to Google Vision for features only
+        features = detect_features(temporary_path)
+        return jsonify({
+            "valid": True,
+            "reason": "",
+            "name": "",
+            "description": "",
+            "category": "",
+            "features": features,
+        })
+
+    except Exception as exc:
+        app.logger.error("analyze_image error: %s", exc)
+        return jsonify({"error": str(exc)}), 500
+
+    finally:
+        if temporary_path and os.path.exists(temporary_path):
+            os.unlink(temporary_path)
+
 
 # Image scanning with Google Cloud Vision API
 @app.route("/api/scan_image", methods=["POST"])
